@@ -44,7 +44,7 @@
 .search-container h2 {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -59,7 +59,7 @@ select {
   margin-bottom: 1.25rem;
   padding: 1rem 1.25rem;
   font-size: 1rem;
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border: 2px solid rgba(220, 38, 38, 0.2);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
@@ -70,9 +70,9 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #dc2626;
   background: white;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
   transform: translateY(-2px);
 }
 
@@ -83,7 +83,7 @@ input::placeholder {
 select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23dc2626' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
@@ -94,25 +94,25 @@ button {
   padding: 1rem;
   font-size: 1.1rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   color: white;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px 0 rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px 0 rgba(220, 38, 38, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px 0 rgba(102, 126, 234, 0.6);
+  box-shadow: 0 6px 20px 0 rgba(220, 38, 38, 0.6);
 }
 
 button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 10px 0 rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 10px 0 rgba(220, 38, 38, 0.4);
 }
 
 .results-container {
@@ -148,7 +148,7 @@ button:active {
   border-radius: 16px;
   text-decoration: none;
   color: #333;
-  border: 2px solid rgba(102, 126, 234, 0.1);
+  border: 2px solid rgba(220, 38, 38, 0.1);
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
@@ -165,7 +165,7 @@ button:active {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(102, 126, 234, 0.1),
+    rgba(220, 38, 38, 0.1),
     transparent
   );
   transition: left 0.5s ease;
@@ -181,9 +181,9 @@ button:active {
     rgba(255, 255, 255, 1) 0%,
     rgba(255, 255, 255, 0.9) 100%
   );
-  border-color: #667eea;
+  border-color: #dc2626;
   transform: translateX(8px);
-  box-shadow: -4px 4px 16px rgba(102, 126, 234, 0.2),
+  box-shadow: -4px 4px 16px rgba(220, 38, 38, 0.2),
     0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -256,7 +256,7 @@ button:disabled {
 
 button:disabled:hover {
   transform: none;
-  box-shadow: 0 4px 15px 0 rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px 0 rgba(220, 38, 38, 0.4);
 }
 
 .job-grid {
@@ -299,7 +299,7 @@ button:disabled:hover {
 
 .job-arrow {
   font-size: 1.5rem;
-  color: #667eea;
+  color: #dc2626;
   transition: transform 0.3s ease;
   flex-shrink: 0;
 }
