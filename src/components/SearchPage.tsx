@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { searchJobs } from '../services/jobService';
+import { searchJobs, getJSearchKey, setJSearchKey } from '../services/jobService';
+import { Job } from '../services/jobUtils';
+
+const JOB_BOARDS = [
+  { name: 'LinkedIn', url: (title: string, city: string) => `https://www.linkedin.com/jobs/search/?keywords=${title}&location=${city}` },
+  { name: 'Indeed', url: (title: string, city: string) => `https://www.indeed.com/jobs?q=${title}&l=${city}` },
+  { name: 'Glassdoor', url: (title: string, city: string) => `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${title}&locKeyword=${city}` },
+  { name: 'Monster', url: (title: string, city: string) => `https://www.monster.com/jobs/search/?q=${title}&where=${city}` },
+  { name: 'ZipRecruiter', url: (title: string, city: string) => `https://www.ziprecruiter.com/jobs-search?search=${title}&location=${city}` },
+];
 
 const SearchPage: React.FC = () => {
   const [jobTitle, setJobTitle] = useState('');
   const [city, setCity] = useState('');
   const [dateFilter, setDateFilter] = useState<'any' | '24hrs' | 'week'>('any');
-  const [jobLinks, setJobLinks] = useState<{ title: string; company: string; url: string }[]>([]);
+  const [jobLinks, setJobLinks] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(getJSearchKey());
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -15,9 +27,11 @@ const SearchPage: React.FC = () => {
     try {
       const links = await searchJobs(jobTitle, city, dateFilter);
       setJobLinks(links);
+      setHasSearched(true);
     } catch (err) {
       console.error('Job search failed:', err);
       setJobLinks([]);
+      setHasSearched(true);
       setError('Search failed — please check your connection and try again.');
     } finally {
       setIsLoading(false);
@@ -28,6 +42,11 @@ const SearchPage: React.FC = () => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    setJSearchKey(value);
   };
 
   return (
@@ -75,6 +94,26 @@ const SearchPage: React.FC = () => {
         </button>
       </div>
 
+      <div className="settings-row">
+        <button type="button" className="settings-toggle" onClick={() => setShowSettings(!showSettings)}>
+          ⚙ API key
+        </button>
+        {!apiKey && (
+          <span className="settings-hint">Add a free RapidAPI key to include LinkedIn/Indeed/Glassdoor results.</span>
+        )}
+      </div>
+      {showSettings && (
+        <div className="settings-panel">
+          <input
+            type="password"
+            placeholder="Paste your RapidAPI (JSearch) key"
+            value={apiKey}
+            onChange={(e) => handleApiKeyChange(e.target.value)}
+            className="api-key-input"
+          />
+        </div>
+      )}
+
       {error && <p className="search-error">{error}</p>}
 
       {jobLinks.length > 0 && (
@@ -97,10 +136,29 @@ const SearchPage: React.FC = () => {
                 <p className="job-company">
                   <span className="company-icon">🏢</span>
                   {job.company}
+                  <span className="job-source">{job.source}</span>
                 </p>
               </a>
             ))}
           </div>
+        </div>
+      )}
+
+      {hasSearched && !error && jobLinks.length === 0 && <p className="no-results">No jobs found.</p>}
+
+      {hasSearched && (
+        <div className="board-links">
+          <span>Search directly on:</span>
+          {JOB_BOARDS.map((board) => (
+            <a
+              key={board.name}
+              href={board.url(encodeURIComponent(jobTitle), encodeURIComponent(city))}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {board.name}
+            </a>
+          ))}
         </div>
       )}
     </div>

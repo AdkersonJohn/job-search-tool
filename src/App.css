@@ -328,6 +328,83 @@ button:disabled:hover {
   font-size: 1rem;
 }
 
+.settings-row {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.settings-toggle {
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: #666;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.settings-toggle:hover {
+  color: #dc2626;
+  transform: none;
+  box-shadow: none;
+}
+
+.settings-hint {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.settings-panel {
+  margin-top: 0.5rem;
+}
+
+.api-key-input {
+  width: 100%;
+  max-width: 420px;
+  font-size: 0.9rem;
+}
+
+.job-source {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+.no-results {
+  margin-top: 1.5rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.board-links {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.board-links a {
+  color: #dc2626;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.board-links a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .search-container {
     padding: 2rem;
