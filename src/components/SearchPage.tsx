@@ -45,7 +45,7 @@ const SearchPage: React.FC = () => {
   };
 
   const handleApiKeyChange = (value: string) => {
-    setApiKey(value);
+    setApiKey(value.trim());
     setJSearchKey(value);
   };
 
