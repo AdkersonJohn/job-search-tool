@@ -1,17 +1,20 @@
 import axios from 'axios';
+import { Job, dedupeJobs, mapJSearchJobs } from './jobUtils';
 
 const ADZUNA_APP_ID = "085d8a01";
 const ADZUNA_API_KEY = "8fbd3b9536418b89512a0b9c712a38c6";
 const ADZUNA_BASE_URL = `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${ADZUNA_APP_ID}&app_key=${ADZUNA_API_KEY}&results_per_page=50`;
 
-export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week'): Promise<{ title: string; company: string; url: string }[]> => {
-  console.log(`Searching for ${jobTitle} in ${city} with filter ${dateFilter} using Adzuna API and other sources`);
+const JSEARCH_KEY_STORAGE = 'jsearch_api_key';
 
-  let allJobLinks: { title: string; company: string; url: string }[] = [];
+export const getJSearchKey = (): string => localStorage.getItem(JSEARCH_KEY_STORAGE) ?? '';
 
-  const what = encodeURIComponent(jobTitle);
-  const where = encodeURIComponent(city);
-  let adzunaUrl = `${ADZUNA_BASE_URL}&what=${what}&where=${where}`;
+export const setJSearchKey = (key: string): void => {
+  localStorage.setItem(JSEARCH_KEY_STORAGE, key.trim());
+};
+
+const fetchAdzuna = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week'): Promise<Job[]> => {
+  let adzunaUrl = `${ADZUNA_BASE_URL}&what=${encodeURIComponent(jobTitle)}&where=${encodeURIComponent(city)}`;
 
   if (dateFilter === '24hrs') {
     adzunaUrl += '&max_days_old=1';
@@ -19,27 +22,40 @@ export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'an
     adzunaUrl += '&max_days_old=7';
   }
 
-  // Adzuna API call — errors propagate to the caller so the UI can show them
   const response = await axios.get(adzunaUrl);
-  const jobData = response.data.results;
+  return (response.data.results ?? []).map((job: any) => ({
+    title: job.title,
+    company: job.company?.display_name ?? 'Unknown',
+    url: job.redirect_url,
+    source: 'Adzuna',
+  }));
+};
 
-  if (jobData && jobData.length > 0) {
-    const adzunaJobs = jobData.map((job: any) => ({
-      title: job.title,
-      company: job.company?.display_name ?? 'Unknown',
-      url: job.redirect_url,
-    }));
-    allJobLinks = allJobLinks.concat(adzunaJobs);
+const fetchJSearch = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week', key: string): Promise<Job[]> => {
+  const datePosted = dateFilter === '24hrs' ? 'today' : dateFilter === 'week' ? 'week' : 'all';
+  const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+    params: { query: `${jobTitle} in ${city}`, date_posted: datePosted },
+    headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com' },
+  });
+  return mapJSearchJobs(response.data.data);
+};
+
+export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week'): Promise<Job[]> => {
+  const key = getJSearchKey();
+  const fetchers = [fetchAdzuna(jobTitle, city, dateFilter)];
+  if (key) {
+    fetchers.push(fetchJSearch(jobTitle, city, dateFilter, key));
   }
 
-  // Mock links for other job boards (cannot filter by date)
-  const mockJobs = [
-    { title: `${jobTitle} in ${city}`, company: "LinkedIn", url: `https://www.linkedin.com/jobs/search/?keywords=${what}&location=${where}` },
-    { title: `${jobTitle} in ${city}`, company: "Indeed", url: `https://www.indeed.com/jobs?q=${what}&l=${where}` },
-    { title: `${jobTitle} in ${city}`, company: "Monster", url: `https://www.monster.com/jobs/search/?q=${what}&where=${where}` }
-  ];
+  const settled = await Promise.allSettled(fetchers);
+  settled.forEach((result) => {
+    if (result.status === 'rejected') console.warn('Job source failed:', result.reason);
+  });
 
-  allJobLinks = allJobLinks.concat(mockJobs);
+  if (settled.every((result) => result.status === 'rejected')) {
+    throw new Error('All job sources failed');
+  }
 
-  return allJobLinks;
+  const jobs = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
+  return dedupeJobs(jobs);
 };
