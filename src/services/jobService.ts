@@ -9,7 +9,9 @@ export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'an
 
   let allJobLinks: { title: string; company: string; url: string }[] = [];
 
-  let adzunaUrl = `${ADZUNA_BASE_URL}&what=${jobTitle}&where=${city}`;
+  const what = encodeURIComponent(jobTitle);
+  const where = encodeURIComponent(city);
+  let adzunaUrl = `${ADZUNA_BASE_URL}&what=${what}&where=${where}`;
 
   if (dateFilter === '24hrs') {
     adzunaUrl += '&max_days_old=1';
@@ -17,28 +19,24 @@ export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'an
     adzunaUrl += '&max_days_old=7';
   }
 
-  // Adzuna API call
-  try {
-    const response = await axios.get(adzunaUrl);
-    const jobData = response.data.results;
+  // Adzuna API call — errors propagate to the caller so the UI can show them
+  const response = await axios.get(adzunaUrl);
+  const jobData = response.data.results;
 
-    if (jobData && jobData.length > 0) {
-      const adzunaJobs = jobData.map((job: any) => ({
-        title: job.title,
-        company: job.company.display_name,
-        url: job.redirect_url,
-      }));
-      allJobLinks = allJobLinks.concat(adzunaJobs);
-    }
-  } catch (error) {
-    console.error("Error fetching jobs from Adzuna:", error);
+  if (jobData && jobData.length > 0) {
+    const adzunaJobs = jobData.map((job: any) => ({
+      title: job.title,
+      company: job.company?.display_name ?? 'Unknown',
+      url: job.redirect_url,
+    }));
+    allJobLinks = allJobLinks.concat(adzunaJobs);
   }
 
   // Mock links for other job boards (cannot filter by date)
   const mockJobs = [
-    { title: `${jobTitle} in ${city}`, company: "LinkedIn", url: `https://www.linkedin.com/jobs/search/?keywords=${jobTitle}&location=${city}` },
-    { title: `${jobTitle} in ${city}`, company: "Indeed", url: `https://www.indeed.com/jobs?q=${jobTitle}&l=${city}` },
-    { title: `${jobTitle} in ${city}`, company: "Monster", url: `https://www.monster.com/jobs/search/?q=${jobTitle}&where=${city}` }
+    { title: `${jobTitle} in ${city}`, company: "LinkedIn", url: `https://www.linkedin.com/jobs/search/?keywords=${what}&location=${where}` },
+    { title: `${jobTitle} in ${city}`, company: "Indeed", url: `https://www.indeed.com/jobs?q=${what}&l=${where}` },
+    { title: `${jobTitle} in ${city}`, company: "Monster", url: `https://www.monster.com/jobs/search/?q=${what}&where=${where}` }
   ];
 
   allJobLinks = allJobLinks.concat(mockJobs);
