@@ -24,7 +24,7 @@ const fetchAdzuna = async (jobTitle: string, city: string, dateFilter: 'any' | '
 
   const response = await axios.get(adzunaUrl);
   return (response.data.results ?? []).map((job: any) => ({
-    title: job.title,
+    title: job.title ?? '',
     company: job.company?.display_name ?? 'Unknown',
     url: job.redirect_url,
     source: 'Adzuna',

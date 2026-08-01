@@ -95,7 +95,7 @@ const SearchPage: React.FC = () => {
       </div>
 
       <div className="settings-row">
-        <button type="button" className="settings-toggle" onClick={() => setShowSettings(!showSettings)}>
+        <button type="button" className="settings-toggle" aria-expanded={showSettings} onClick={() => setShowSettings(!showSettings)}>
           ⚙ API key
         </button>
         {!apiKey && (
@@ -110,6 +110,7 @@ const SearchPage: React.FC = () => {
             value={apiKey}
             onChange={(e) => handleApiKeyChange(e.target.value)}
             className="api-key-input"
+            aria-label="RapidAPI JSearch key"
           />
         </div>
       )}
