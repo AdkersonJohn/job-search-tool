@@ -7,12 +7,18 @@ const SearchPage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<'any' | '24hrs' | 'week'>('any');
   const [jobLinks, setJobLinks] = useState<{ title: string; company: string; url: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSearch = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const links = await searchJobs(jobTitle, city, dateFilter);
       setJobLinks(links);
+    } catch (err) {
+      console.error('Job search failed:', err);
+      setJobLinks([]);
+      setError('Search failed — please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -35,7 +41,7 @@ const SearchPage: React.FC = () => {
             placeholder="e.g. Software Engineer, Designer"
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             className="input-with-icon"
           />
         </div>
@@ -46,7 +52,7 @@ const SearchPage: React.FC = () => {
             placeholder="e.g. New York, Remote"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             className="input-with-icon"
           />
         </div>
@@ -68,6 +74,8 @@ const SearchPage: React.FC = () => {
           )}
         </button>
       </div>
+
+      {error && <p className="search-error">{error}</p>}
 
       {jobLinks.length > 0 && (
         <div className="results-container">
