@@ -50,6 +50,15 @@
   background-clip: text;
   margin-bottom: 2rem;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.search-container h2 svg {
+  color: #dc2626;
+  flex-shrink: 0;
 }
 
 input,
@@ -103,6 +112,10 @@ button {
   box-shadow: 0 4px 15px 0 rgba(220, 38, 38, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 button:hover {
@@ -138,9 +151,9 @@ button:active {
   gap: 0.5rem;
 }
 
-.results-container h3::before {
-  content: "💼";
-  font-size: 1.5rem;
+.results-icon {
+  color: #dc2626;
+  flex-shrink: 0;
 }
 
 .job-link {
@@ -230,9 +243,11 @@ button:active {
   left: 1.25rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.25rem;
   pointer-events: none;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  color: #dc2626;
 }
 
 .input-with-icon {
@@ -325,7 +340,9 @@ button:disabled:hover {
 }
 
 .company-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  color: #999;
 }
 
 .settings-row {
@@ -345,6 +362,10 @@ button:disabled:hover {
   font-size: 0.85rem;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .settings-toggle:hover {
@@ -360,12 +381,64 @@ button:disabled:hover {
 
 .settings-panel {
   margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.api-key-field {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
 }
 
 .api-key-input {
   width: 100%;
-  max-width: 420px;
   font-size: 0.9rem;
+  padding-right: 3rem !important;
+  margin-bottom: 0;
+}
+
+.key-visibility-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  padding: 0.4rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: #666;
+}
+
+.key-visibility-toggle:hover {
+  color: #dc2626;
+  transform: translateY(-50%);
+  box-shadow: none;
+}
+
+.api-key-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.save-key-button {
+  width: auto;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+.key-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .job-source {
