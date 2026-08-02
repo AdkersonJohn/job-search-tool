@@ -10,6 +10,9 @@ export const dedupeJobs = (jobs: Job[]): Job[] => {
   });
 };
 
+export const toggleQueued = (queue: Job[], job: Job): Job[] =>
+  queue.some((q) => q.url === job.url) ? queue.filter((q) => q.url !== job.url) : [...queue, job];
+
 export const mapJSearchJobs = (results: any[] | undefined | null): Job[] =>
   (results ?? [])
     .map((r: any) => ({

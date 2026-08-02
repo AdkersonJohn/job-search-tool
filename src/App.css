@@ -457,6 +457,94 @@ button:disabled:hover {
   font-weight: 600;
 }
 
+.queue-toggle {
+  width: auto;
+  padding: 0.35rem;
+  background: none;
+  border: 2px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  color: #dc2626;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.queue-toggle:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.queue-toggle.queued {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: white;
+}
+
+.queue-container {
+  margin-top: 2rem;
+  text-align: left;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.queue-container h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.queue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: 10px;
+}
+
+.queue-job {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.queue-remove {
+  width: auto;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: #999;
+}
+
+.queue-remove:hover {
+  color: #dc2626;
+  transform: none;
+  box-shadow: none;
+}
+
+.queue-clear {
+  width: auto;
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: #666;
+  text-decoration: underline;
+}
+
+.queue-clear:hover {
+  color: #dc2626;
+  transform: none;
+  box-shadow: none;
+}
+
 .board-links {
   margin-top: 2rem;
   display: flex;

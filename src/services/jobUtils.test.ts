@@ -1,4 +1,4 @@
-import { dedupeJobs, mapJSearchJobs, Job } from './jobUtils';
+import { dedupeJobs, mapJSearchJobs, toggleQueued, Job } from './jobUtils';
 
 const job = (title: string, company: string, source = 'Adzuna'): Job => ({
   title,
@@ -51,5 +51,17 @@ describe('mapJSearchJobs', () => {
   it('returns empty array for undefined/null input', () => {
     expect(mapJSearchJobs(undefined)).toEqual([]);
     expect(mapJSearchJobs(null)).toEqual([]);
+  });
+});
+
+describe('toggleQueued', () => {
+  it('adds a job not in the queue', () => {
+    const result = toggleQueued([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' });
+    expect(result).toHaveLength(2);
+  });
+
+  it('removes a job already in the queue, matching by url', () => {
+    const queued = job('Engineer', 'Acme');
+    expect(toggleQueued([queued], { ...queued, title: 'Renamed' })).toEqual([]);
   });
 });

@@ -35,3 +35,11 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+# Personal application data — never commit
+apply-profile.json
+applied-log.json
+
+# Session scratch
+.superpowers/
+.playwright-mcp/
