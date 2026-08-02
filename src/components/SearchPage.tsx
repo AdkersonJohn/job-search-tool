@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Briefcase, Building2, Calendar, Check, Eye, EyeOff, MapPin, Rocket, Search, Settings } from 'lucide-react';
 import { searchJobs, getJSearchKey, setJSearchKey } from '../services/jobService';
 import { Job } from '../services/jobUtils';
 
@@ -19,7 +20,10 @@ const SearchPage: React.FC = () => {
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState(getJSearchKey());
+  const [draftKey, setDraftKey] = useState(getJSearchKey());
+  const [storedKey, setStoredKey] = useState(getJSearchKey());
+  const [showKey, setShowKey] = useState(false);
+  const [keySaved, setKeySaved] = useState(false);
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -44,17 +48,20 @@ const SearchPage: React.FC = () => {
     }
   };
 
-  const handleApiKeyChange = (value: string) => {
-    setApiKey(value.trim());
-    setJSearchKey(value);
+  const handleSaveKey = () => {
+    const trimmed = draftKey.trim();
+    setJSearchKey(trimmed);
+    setStoredKey(trimmed);
+    setDraftKey(trimmed);
+    setKeySaved(true);
   };
 
   return (
     <div className="search-container">
-      <h2>🚀 Job Search</h2>
+      <h2><Rocket size={36} strokeWidth={2.5} /> Job Search</h2>
       <div className="input-group">
         <div className="input-wrapper">
-          <span className="input-icon">💼</span>
+          <span className="input-icon"><Briefcase size={20} /></span>
           <input
             type="text"
             placeholder="e.g. Software Engineer, Designer"
@@ -65,7 +72,7 @@ const SearchPage: React.FC = () => {
           />
         </div>
         <div className="input-wrapper">
-          <span className="input-icon">📍</span>
+          <span className="input-icon"><MapPin size={20} /></span>
           <input
             type="text"
             placeholder="e.g. New York, Remote"
@@ -75,11 +82,14 @@ const SearchPage: React.FC = () => {
             className="input-with-icon"
           />
         </div>
-        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value as 'any' | '24hrs' | 'week')}>
-          <option value="any">📅 Any Time</option>
-          <option value="24hrs">🕐 Last 24 Hours</option>
-          <option value="week">📆 Last Week</option>
-        </select>
+        <div className="input-wrapper">
+          <span className="input-icon"><Calendar size={20} /></span>
+          <select className="input-with-icon" value={dateFilter} onChange={(e) => setDateFilter(e.target.value as 'any' | '24hrs' | 'week')}>
+            <option value="any">Any Time</option>
+            <option value="24hrs">Last 24 Hours</option>
+            <option value="week">Last Week</option>
+          </select>
+        </div>
         <button onClick={handleSearch} disabled={isLoading}>
           {isLoading ? (
             <>
@@ -88,7 +98,7 @@ const SearchPage: React.FC = () => {
             </>
           ) : (
             <>
-              🔍 Search Jobs
+              <Search size={18} /> Search Jobs
             </>
           )}
         </button>
@@ -96,22 +106,39 @@ const SearchPage: React.FC = () => {
 
       <div className="settings-row">
         <button type="button" className="settings-toggle" aria-expanded={showSettings} onClick={() => setShowSettings(!showSettings)}>
-          ⚙ API key
+          <Settings size={14} /> API key
         </button>
-        {!apiKey && (
+        {!storedKey && (
           <span className="settings-hint">Add a free RapidAPI key to include LinkedIn/Indeed/Glassdoor results.</span>
         )}
       </div>
       {showSettings && (
         <div className="settings-panel">
-          <input
-            type="password"
-            placeholder="Paste your RapidAPI (JSearch) key"
-            value={apiKey}
-            onChange={(e) => handleApiKeyChange(e.target.value)}
-            className="api-key-input"
-            aria-label="RapidAPI JSearch key"
-          />
+          <div className="api-key-field">
+            <input
+              type={showKey ? 'text' : 'password'}
+              placeholder="Paste your RapidAPI (JSearch) key"
+              value={draftKey}
+              onChange={(e) => { setDraftKey(e.target.value); setKeySaved(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveKey(); }}
+              className="api-key-input"
+              aria-label="RapidAPI JSearch key"
+            />
+            <button
+              type="button"
+              className="key-visibility-toggle"
+              aria-label={showKey ? 'Hide API key' : 'Show API key'}
+              onClick={() => setShowKey(!showKey)}
+            >
+              {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          <div className="api-key-actions">
+            <button type="button" className="save-key-button" onClick={handleSaveKey}>
+              Save API key
+            </button>
+            {keySaved && <span className="key-saved"><Check size={16} /> Saved</span>}
+          </div>
         </div>
       )}
 
@@ -119,7 +146,7 @@ const SearchPage: React.FC = () => {
 
       {jobLinks.length > 0 && (
         <div className="results-container">
-          <h3>Found {jobLinks.length} Opportunities</h3>
+          <h3><Briefcase size={24} className="results-icon" /> Found {jobLinks.length} Opportunities</h3>
           <div className="job-grid">
             {jobLinks.map((job, index) => (
               <a
@@ -135,7 +162,7 @@ const SearchPage: React.FC = () => {
                   <span className="job-arrow">→</span>
                 </div>
                 <p className="job-company">
-                  <span className="company-icon">🏢</span>
+                  <span className="company-icon"><Building2 size={16} /></span>
                   {job.company}
                   <span className="job-source">{job.source}</span>
                 </p>
