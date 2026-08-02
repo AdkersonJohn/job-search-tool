@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Briefcase, Building2, Calendar, Check, Eye, EyeOff, MapPin, Rocket, Search, Settings } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Briefcase, Building2, Calendar, Check, ClipboardList, Eye, EyeOff, MapPin, Plus, Rocket, Search, Settings, X } from 'lucide-react';
 import { searchJobs, getJSearchKey, setJSearchKey } from '../services/jobService';
-import { Job } from '../services/jobUtils';
+import { Job, toggleQueued } from '../services/jobUtils';
 
 const JOB_BOARDS = [
   { name: 'LinkedIn', url: (title: string, city: string) => `https://www.linkedin.com/jobs/search/?keywords=${title}&location=${city}` },
@@ -10,6 +10,16 @@ const JOB_BOARDS = [
   { name: 'Monster', url: (title: string, city: string) => `https://www.monster.com/jobs/search/?q=${title}&where=${city}` },
   { name: 'ZipRecruiter', url: (title: string, city: string) => `https://www.ziprecruiter.com/jobs-search?search=${title}&location=${city}` },
 ];
+
+const APPLY_QUEUE_STORAGE = 'apply_queue';
+
+const loadQueue = (): Job[] => {
+  try {
+    return JSON.parse(localStorage.getItem(APPLY_QUEUE_STORAGE) ?? '[]');
+  } catch {
+    return [];
+  }
+};
 
 const SearchPage: React.FC = () => {
   const [jobTitle, setJobTitle] = useState('');
@@ -24,6 +34,19 @@ const SearchPage: React.FC = () => {
   const [storedKey, setStoredKey] = useState(getJSearchKey());
   const [showKey, setShowKey] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
+  const [queue, setQueue] = useState<Job[]>(loadQueue);
+
+  useEffect(() => {
+    localStorage.setItem(APPLY_QUEUE_STORAGE, JSON.stringify(queue));
+  }, [queue]);
+
+  const isQueued = (job: Job) => queue.some((q) => q.url === job.url);
+
+  const handleToggleQueue = (e: React.MouseEvent, job: Job) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setQueue((prev) => toggleQueued(prev, job));
+  };
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -159,6 +182,14 @@ const SearchPage: React.FC = () => {
               >
                 <div className="job-header">
                   <h4 className="job-title">{job.title}</h4>
+                  <button
+                    type="button"
+                    className={`queue-toggle${isQueued(job) ? ' queued' : ''}`}
+                    aria-label={isQueued(job) ? 'Remove from apply queue' : 'Add to apply queue'}
+                    onClick={(e) => handleToggleQueue(e, job)}
+                  >
+                    {isQueued(job) ? <Check size={16} /> : <Plus size={16} />}
+                  </button>
                   <span className="job-arrow">→</span>
                 </div>
                 <p className="job-company">
@@ -173,6 +204,29 @@ const SearchPage: React.FC = () => {
       )}
 
       {hasSearched && !error && jobLinks.length === 0 && <p className="no-results">No jobs found.</p>}
+
+      {queue.length > 0 && (
+        <div className="queue-container">
+          <h3><ClipboardList size={22} className="results-icon" /> Queued ({queue.length})</h3>
+          {queue.map((job) => (
+            <div key={job.url} className="queue-row">
+              <span className="queue-job">{job.title} — {job.company}</span>
+              <span className="job-source">{job.source}</span>
+              <button
+                type="button"
+                className="queue-remove"
+                aria-label={`Remove ${job.title} from queue`}
+                onClick={() => setQueue((prev) => prev.filter((q) => q.url !== job.url))}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="queue-clear" onClick={() => setQueue([])}>
+            Clear queue
+          </button>
+        </div>
+      )}
 
       {hasSearched && (
         <div className="board-links">
