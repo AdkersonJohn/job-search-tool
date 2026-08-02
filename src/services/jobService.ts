@@ -33,29 +33,33 @@ const fetchAdzuna = async (jobTitle: string, city: string, dateFilter: 'any' | '
 
 const fetchJSearch = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week', key: string): Promise<Job[]> => {
   const datePosted = dateFilter === '24hrs' ? 'today' : dateFilter === 'week' ? 'week' : 'all';
-  const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+  const response = await axios.get('https://jsearch.p.rapidapi.com/search-v2', {
     params: { query: `${jobTitle} in ${city}`, date_posted: datePosted },
     headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com' },
   });
-  return mapJSearchJobs(response.data.data);
+  return mapJSearchJobs(response.data.data?.jobs);
 };
 
-export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week'): Promise<Job[]> => {
+export type SearchResult = { jobs: Job[]; failedSources: string[] };
+
+export const searchJobs = async (jobTitle: string, city: string, dateFilter: 'any' | '24hrs' | 'week'): Promise<SearchResult> => {
   const key = getJSearchKey();
-  const fetchers = [fetchAdzuna(jobTitle, city, dateFilter)];
+  const sources = [{ name: 'Adzuna', fetch: fetchAdzuna(jobTitle, city, dateFilter) }];
   if (key) {
-    fetchers.push(fetchJSearch(jobTitle, city, dateFilter, key));
+    sources.push({ name: 'JSearch (LinkedIn/Indeed/Glassdoor)', fetch: fetchJSearch(jobTitle, city, dateFilter, key) });
   }
 
-  const settled = await Promise.allSettled(fetchers);
-  settled.forEach((result) => {
-    if (result.status === 'rejected') console.warn('Job source failed:', result.reason);
+  const settled = await Promise.allSettled(sources.map((s) => s.fetch));
+  const failedSources = settled.flatMap((result, i) => {
+    if (result.status !== 'rejected') return [];
+    console.warn('Job source failed:', sources[i].name, result.reason);
+    return [sources[i].name];
   });
 
-  if (settled.every((result) => result.status === 'rejected')) {
+  if (failedSources.length === sources.length) {
     throw new Error('All job sources failed');
   }
 
   const jobs = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
-  return dedupeJobs(jobs);
+  return { jobs: dedupeJobs(jobs), failedSources };
 };

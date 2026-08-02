@@ -28,6 +28,7 @@ const SearchPage: React.FC = () => {
   const [jobLinks, setJobLinks] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sourceWarning, setSourceWarning] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [draftKey, setDraftKey] = useState(getJSearchKey());
@@ -51,10 +52,14 @@ const SearchPage: React.FC = () => {
   const handleSearch = async () => {
     setIsLoading(true);
     setError('');
+    setSourceWarning('');
     try {
-      const links = await searchJobs(jobTitle, city, dateFilter);
-      setJobLinks(links);
+      const { jobs, failedSources } = await searchJobs(jobTitle, city, dateFilter);
+      setJobLinks(jobs);
       setHasSearched(true);
+      if (failedSources.length > 0) {
+        setSourceWarning(`Some sources failed: ${failedSources.join(', ')} — showing partial results.`);
+      }
     } catch (err) {
       console.error('Job search failed:', err);
       setJobLinks([]);
@@ -166,6 +171,7 @@ const SearchPage: React.FC = () => {
       )}
 
       {error && <p className="search-error">{error}</p>}
+      {sourceWarning && <p className="search-error">{sourceWarning}</p>}
 
       {jobLinks.length > 0 && (
         <div className="results-container">
