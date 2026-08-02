@@ -59,6 +59,9 @@ Verify `resumePath` exists before starting.
 - Remove successfully applied (and permanently-skipped) jobs from the site queue:
   write the filtered array back with `localStorage.setItem('apply_queue', ...)` on
   the site's tab.
+- Append each applied job (the Job object: title/company/url/source) to the site's
+  `applied_jobs` localStorage list on the same tab — the UI uses it to badge search
+  results as "Already applied" (matched by url or title|company).
 
 ## 5. Wrap up
 

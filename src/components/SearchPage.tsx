@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Briefcase, Building2, Calendar, Check, ClipboardList, Eye, EyeOff, MapPin, Plus, Rocket, Search, Settings, X } from 'lucide-react';
 import { searchJobs, getJSearchKey, setJSearchKey } from '../services/jobService';
-import { Job, toggleQueued } from '../services/jobUtils';
+import { Job, toggleQueued, isApplied } from '../services/jobUtils';
 
 const JOB_BOARDS = [
   { name: 'LinkedIn', url: (title: string, city: string) => `https://www.linkedin.com/jobs/search/?keywords=${title}&location=${city}` },
@@ -12,10 +12,11 @@ const JOB_BOARDS = [
 ];
 
 const APPLY_QUEUE_STORAGE = 'apply_queue';
+const APPLIED_JOBS_STORAGE = 'applied_jobs';
 
-const loadQueue = (): Job[] => {
+const loadJobList = (storageKey: string): Job[] => {
   try {
-    return JSON.parse(localStorage.getItem(APPLY_QUEUE_STORAGE) ?? '[]');
+    return JSON.parse(localStorage.getItem(storageKey) ?? '[]');
   } catch {
     return [];
   }
@@ -35,7 +36,8 @@ const SearchPage: React.FC = () => {
   const [storedKey, setStoredKey] = useState(getJSearchKey());
   const [showKey, setShowKey] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
-  const [queue, setQueue] = useState<Job[]>(loadQueue);
+  const [queue, setQueue] = useState<Job[]>(() => loadJobList(APPLY_QUEUE_STORAGE));
+  const [appliedJobs] = useState<Job[]>(() => loadJobList(APPLIED_JOBS_STORAGE));
 
   useEffect(() => {
     localStorage.setItem(APPLY_QUEUE_STORAGE, JSON.stringify(queue));
@@ -183,7 +185,7 @@ const SearchPage: React.FC = () => {
                 href={job.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="job-link"
+                className={`job-link${isApplied(appliedJobs, job) ? ' applied' : ''}`}
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 <div className="job-header">
@@ -201,6 +203,9 @@ const SearchPage: React.FC = () => {
                 <p className="job-company">
                   <span className="company-icon"><Building2 size={16} /></span>
                   {job.company}
+                  {isApplied(appliedJobs, job) && (
+                    <span className="applied-badge"><Check size={12} /> Already applied</span>
+                  )}
                   <span className="job-source">{job.source}</span>
                 </p>
               </a>
