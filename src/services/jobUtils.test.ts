@@ -1,4 +1,4 @@
-import { dedupeJobs, mapJSearchJobs, toggleQueued, Job } from './jobUtils';
+import { dedupeJobs, mapJSearchJobs, toggleQueued, isApplied, Job } from './jobUtils';
 
 const job = (title: string, company: string, source = 'Adzuna'): Job => ({
   title,
@@ -51,6 +51,22 @@ describe('mapJSearchJobs', () => {
   it('returns empty array for undefined/null input', () => {
     expect(mapJSearchJobs(undefined)).toEqual([]);
     expect(mapJSearchJobs(null)).toEqual([]);
+  });
+});
+
+describe('isApplied', () => {
+  it('matches by exact url', () => {
+    const applied = [job('Old Title', 'Old Co')];
+    expect(isApplied(applied, { ...job('Different', 'Other'), url: 'https://example.com/x' })).toBe(true);
+  });
+
+  it('matches by title|company ignoring case and url differences', () => {
+    const applied = [{ ...job('Data Engineer III', 'BC Forward'), url: 'https://monster.com/1' }];
+    expect(isApplied(applied, { ...job('  data engineer iii ', 'bc forward', 'LinkedIn'), url: 'https://linkedin.com/2' })).toBe(true);
+  });
+
+  it('does not match different jobs', () => {
+    expect(isApplied([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' })).toBe(false);
   });
 });
 
