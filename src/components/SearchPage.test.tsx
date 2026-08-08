@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchPage from './SearchPage';
 import { searchJobs, hasConfiguredSource, getAdzunaCredentials, getJSearchKey, NO_SOURCES_ERROR } from '../services/jobService';
-import { Job } from '../services/jobUtils';
+import { AllSourcesFailedError, Job } from '../services/jobUtils';
 
 // Mocked wholesale rather than with requireActual: the real module imports axios,
 // which ships ESM that CRA's Jest transform does not process.
@@ -132,21 +132,42 @@ describe('search states', () => {
     expect(await screen.findByText('No jobs found.')).toBeInTheDocument();
   });
 
-  it('shows an error and no results when every source fails', async () => {
-    mockedSearch.mockRejectedValue(new Error('All job sources failed'));
+  it('blames the provider, not the key, when every source returns 5xx', async () => {
+    mockedSearch.mockRejectedValue(new AllSourcesFailedError([{ name: 'Adzuna', kind: 'unavailable' }]));
     render(<SearchPage />);
     await runSearch();
 
-    expect(await screen.findByText(/search failed/i)).toBeInTheDocument();
+    const banner = await screen.findByText(/temporarily unavailable/i);
+    expect(banner).toHaveClass('search-error');
+    expect(banner.textContent).not.toMatch(/api key/i);
     expect(screen.queryByRole('link', { name: 'Senior Software Engineer' })).not.toBeInTheDocument();
   });
 
-  it('shows partial results alongside a warning when one source fails', async () => {
-    mockedSearch.mockResolvedValue({ jobs: [job()], failedSources: ['JSearch (LinkedIn/Indeed/Glassdoor)'] });
+  it('points at the key when every source rejects it', async () => {
+    mockedSearch.mockRejectedValue(new AllSourcesFailedError([{ name: 'Adzuna', kind: 'auth' }]));
     render(<SearchPage />);
     await runSearch();
 
-    expect(await screen.findByText(/some sources failed: jsearch/i)).toBeInTheDocument();
+    expect(await screen.findByText(/your api key was rejected/i)).toBeInTheDocument();
+  });
+
+  it('names the quota when every source is rate limited', async () => {
+    mockedSearch.mockRejectedValue(new AllSourcesFailedError([{ name: 'JSearch', kind: 'rateLimit' }]));
+    render(<SearchPage />);
+    await runSearch();
+
+    expect(await screen.findByText(/request limit/i)).toBeInTheDocument();
+  });
+
+  it('shows partial results alongside a reason when one source fails', async () => {
+    mockedSearch.mockResolvedValue({
+      jobs: [job()],
+      failedSources: [{ name: 'JSearch (LinkedIn/Indeed/Glassdoor)', kind: 'unavailable' }],
+    });
+    render(<SearchPage />);
+    await runSearch();
+
+    expect(await screen.findByText(/jsearch .* is temporarily unavailable — showing partial results/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Senior Software Engineer' })).toBeInTheDocument();
   });
 

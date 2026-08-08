@@ -1,5 +1,13 @@
 import axios from 'axios';
-import { Job, dedupeJobs, mapAdzunaJobs, mapJSearchJobs } from './jobUtils';
+import {
+  AllSourcesFailedError,
+  FailureKind,
+  Job,
+  SourceFailure,
+  dedupeJobs,
+  mapAdzunaJobs,
+  mapJSearchJobs,
+} from './jobUtils';
 
 const JSEARCH_KEY_STORAGE = 'jsearch_api_key';
 const ADZUNA_ID_STORAGE = 'adzuna_app_id';
@@ -70,9 +78,20 @@ const fetchJSearch = async (
   return mapJSearchJobs(response.data.data?.jobs);
 };
 
-export type SearchResult = { jobs: Job[]; failedSources: string[] };
+export type SearchResult = { jobs: Job[]; failedSources: SourceFailure[] };
 
 export const NO_SOURCES_ERROR = 'No job sources configured';
+
+/** A 5xx from the provider is their outage, not a bad key — don't conflate them. */
+export const classifyFailure = (error: unknown): FailureKind => {
+  if (!axios.isAxiosError(error)) return 'unknown';
+  const status = error.response?.status;
+  if (status === undefined) return 'network';
+  if (status === 401 || status === 403) return 'auth';
+  if (status === 429) return 'rateLimit';
+  if (status >= 500) return 'unavailable';
+  return 'unknown';
+};
 
 export const searchJobs = async (
   jobTitle: string,
@@ -101,11 +120,11 @@ export const searchJobs = async (
   const failedSources = settled.flatMap((result, i) => {
     if (result.status !== 'rejected') return [];
     console.warn('Job source failed:', sources[i].name, result.reason);
-    return [sources[i].name];
+    return [{ name: sources[i].name, kind: classifyFailure(result.reason) }];
   });
 
   if (failedSources.length === sources.length) {
-    throw new Error('All job sources failed');
+    throw new AllSourcesFailedError(failedSources);
   }
 
   const jobs = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));

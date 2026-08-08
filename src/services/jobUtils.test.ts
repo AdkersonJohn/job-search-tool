@@ -1,6 +1,8 @@
 import {
   addApplied,
   dedupeJobs,
+  partialFailureMessage,
+  totalFailureMessage,
   formatPosted,
   formatSalary,
   isApplied,
@@ -206,6 +208,40 @@ describe('addApplied', () => {
   it('is idempotent for a job already applied to', () => {
     const existing = job('Engineer', 'Acme');
     expect(addApplied([existing], { ...existing })).toHaveLength(1);
+  });
+});
+
+describe('failure messages', () => {
+  it('names each failed source and why in the partial banner', () => {
+    expect(partialFailureMessage([{ name: 'JSearch', kind: 'unavailable' }])).toBe(
+      'JSearch is temporarily unavailable — showing partial results.',
+    );
+  });
+
+  it('joins multiple failed sources', () => {
+    const msg = partialFailureMessage([
+      { name: 'Adzuna', kind: 'rateLimit' },
+      { name: 'JSearch', kind: 'auth' },
+    ]);
+    expect(msg).toBe('Adzuna hit its request limit; JSearch rejected the API key — showing partial results.');
+  });
+
+  it('does not blame the key for a provider outage', () => {
+    const msg = totalFailureMessage([{ name: 'JSearch', kind: 'unavailable' }]);
+    expect(msg).toMatch(/their end/i);
+    expect(msg).not.toMatch(/api key/i);
+  });
+
+  it('does blame the key when the provider rejected it', () => {
+    expect(totalFailureMessage([{ name: 'Adzuna', kind: 'auth' }])).toMatch(/api key was rejected/i);
+  });
+
+  it('falls back to the generic message when causes differ', () => {
+    const msg = totalFailureMessage([
+      { name: 'Adzuna', kind: 'auth' },
+      { name: 'JSearch', kind: 'unavailable' },
+    ]);
+    expect(msg).toMatch(/check your connection/i);
   });
 });
 
