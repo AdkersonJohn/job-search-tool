@@ -1,3 +1,39 @@
+export type FailureKind = 'auth' | 'rateLimit' | 'unavailable' | 'network' | 'unknown';
+export type SourceFailure = { name: string; kind: FailureKind };
+
+const FAILURE_PHRASE: Record<FailureKind, string> = {
+  auth: 'rejected the API key',
+  rateLimit: 'hit its request limit',
+  unavailable: 'is temporarily unavailable',
+  network: 'could not be reached',
+  unknown: 'failed unexpectedly',
+};
+
+/** Banner shown when some sources returned results and others didn't. */
+export const partialFailureMessage = (failures: SourceFailure[]): string =>
+  `${failures.map((f) => `${f.name} ${FAILURE_PHRASE[f.kind]}`).join('; ')} — showing partial results.`;
+
+/** Banner shown when nothing came back at all. A provider outage must not be
+    reported as a key problem — that sends people to check a key that is fine. */
+export const totalFailureMessage = (failures: SourceFailure[]): string => {
+  const kinds = new Set(failures.map((f) => f.kind));
+  if (kinds.size === 1) {
+    const [kind] = Array.from(kinds);
+    if (kind === 'auth') return 'Your API key was rejected. Check it under API keys below.';
+    if (kind === 'rateLimit') return 'You have hit the request limit for your API key. Try again later.';
+    if (kind === 'unavailable') return 'The job source is temporarily unavailable. That is on their end — try again in a few minutes.';
+    if (kind === 'network') return 'Could not reach the job sources. Check your connection and try again.';
+  }
+  return 'Search failed. Check your connection, and confirm your API keys are still valid.';
+};
+
+export class AllSourcesFailedError extends Error {
+  constructor(public readonly failures: SourceFailure[]) {
+    super('All job sources failed');
+    this.name = 'AllSourcesFailedError';
+  }
+}
+
 export type Job = {
   title: string;
   company: string;

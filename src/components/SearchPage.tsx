@@ -10,7 +10,15 @@ import {
   setAdzunaCredentials,
   setJSearchKey,
 } from '../services/jobService';
-import { Job, addApplied, toggleQueued, isApplied } from '../services/jobUtils';
+import {
+  AllSourcesFailedError,
+  Job,
+  addApplied,
+  isApplied,
+  partialFailureMessage,
+  toggleQueued,
+  totalFailureMessage,
+} from '../services/jobUtils';
 
 const JOB_BOARDS = [
   { name: 'LinkedIn', url: (title: string, city: string) => `https://www.linkedin.com/jobs/search/?keywords=${title}&location=${city}` },
@@ -106,7 +114,7 @@ const SearchPage: React.FC = () => {
       setSearchedFor({ jobTitle, city });
       setHasSearched(true);
       if (failedSources.length > 0) {
-        setSourceWarning(`Some sources failed: ${failedSources.join(', ')} — showing partial results.`);
+        setSourceWarning(partialFailureMessage(failedSources));
       }
     } catch (err) {
       console.error('Job search failed:', err);
@@ -114,6 +122,8 @@ const SearchPage: React.FC = () => {
       if (err instanceof Error && err.message === NO_SOURCES_ERROR) {
         setError('Add an API key below to start searching.');
         setShowSettings(true);
+      } else if (err instanceof AllSourcesFailedError) {
+        setError(totalFailureMessage(err.failures));
       } else {
         setError('Search failed. Check your connection, and confirm your API keys are still valid.');
       }
