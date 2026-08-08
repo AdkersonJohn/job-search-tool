@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Briefcase, Building2, Calendar, Check, ClipboardList, DollarSign, ExternalLink, Eye, EyeOff, MapPin, Plus, Rocket, Search, Settings, X } from 'lucide-react';
+import { Briefcase, Building2, Calendar, Check, DollarSign, ExternalLink, Eye, EyeOff, MapPin, Plus, Rocket, Search, Settings, X } from 'lucide-react';
 import {
   DateFilter,
   NO_SOURCES_ERROR,
@@ -150,8 +150,26 @@ const SearchPage: React.FC = () => {
   };
 
   return (
-    <main className="search-container">
-      <h1><Rocket size={36} strokeWidth={2.5} /> Job Search</h1>
+    <>
+      <header className="global-nav">
+        <div className="global-nav-inner">
+          <span className="nav-wordmark"><Rocket size={16} strokeWidth={2.2} /> Job Search</span>
+          <span className="nav-spacer" />
+          {queue.length > 0 && (
+            <a className="nav-link" href="#queue">
+              Queue <span className="nav-count">{queue.length}</span>
+            </a>
+          )}
+        </div>
+      </header>
+      <main className="search-container">
+      <section className="hero">
+        <h1>Find your next role.</h1>
+        <p className="hero-sub">
+          Search every source at once. Queue what matters. Never apply to the same job twice.
+        </p>
+      </section>
+      <div className="search-panel">
       <div className="input-group">
         <div className="input-wrapper">
           <span className="input-icon"><Briefcase size={20} /></span>
@@ -279,6 +297,7 @@ const SearchPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
 
       <div aria-live="polite" role="status">
         {error && <p className="search-error">{error}</p>}
@@ -289,7 +308,7 @@ const SearchPage: React.FC = () => {
 
       {jobLinks.length > 0 && (
         <section className="results-container">
-          <h2><Briefcase size={24} className="results-icon" /> Found {jobLinks.length} Opportunities</h2>
+          <h2>Found {jobLinks.length} opportunities</h2>
           <div className="job-grid">
             {jobLinks.map((job, index) => {
               const applied = isApplied(appliedJobs, job);
@@ -347,8 +366,8 @@ const SearchPage: React.FC = () => {
       )}
 
       {queue.length > 0 && (
-        <section className="queue-container">
-          <h2><ClipboardList size={22} className="results-icon" /> Queued ({queue.length})</h2>
+        <section className="queue-container" id="queue">
+          <h2>Queued ({queue.length})</h2>
           {queue.map((job) => (
             <div key={job.url} className="queue-row">
               <a href={job.url} target="_blank" rel="noopener noreferrer" className="queue-job">
@@ -394,7 +413,8 @@ const SearchPage: React.FC = () => {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 };
 
