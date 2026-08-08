@@ -85,9 +85,20 @@ describe('apply queue', () => {
 });
 
 describe('applied tracking', () => {
-  it('marks a job applied from the UI and writes applied_jobs', async () => {
+  it('offers no way to assert applied status on a search result', async () => {
     render(<SearchPage />);
     await runSearch();
+    await screen.findByRole('link', { name: 'Senior Software Engineer' });
+
+    // The badge is derived. Queueing is the only decision available on a result.
+    expect(screen.queryByRole('button', { name: /mark .* as applied/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add senior software engineer to apply queue/i })).toBeInTheDocument();
+  });
+
+  it('marks a job applied from the queue and writes applied_jobs', async () => {
+    render(<SearchPage />);
+    await runSearch();
+    await userEvent.click(await screen.findByRole('button', { name: /add senior software engineer to apply queue/i }));
 
     await userEvent.click(await screen.findByRole('button', { name: /mark senior software engineer as applied/i }));
 
@@ -95,10 +106,21 @@ describe('applied tracking', () => {
       expect(JSON.parse(localStorage.getItem('applied_jobs') ?? '[]')).toHaveLength(1);
     });
     expect(screen.getByText(/already applied/i)).toBeInTheDocument();
+    // Applying removes it from the queue — it cannot be queued and applied at once.
+    expect(JSON.parse(localStorage.getItem('apply_queue') ?? '[]')).toHaveLength(0);
   });
 
   it('badges a previously applied job read from localStorage on mount', async () => {
     localStorage.setItem('applied_jobs', JSON.stringify([job()]));
+    render(<SearchPage />);
+    await runSearch();
+
+    expect(await screen.findByText(/already applied/i)).toBeInTheDocument();
+  });
+
+  it('badges a job applied to before the location field existed', async () => {
+    const { location, ...legacyRecord } = job({ url: 'https://workday.test/old-application' });
+    localStorage.setItem('applied_jobs', JSON.stringify([legacyRecord]));
     render(<SearchPage />);
     await runSearch();
 

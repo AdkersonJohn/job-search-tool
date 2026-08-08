@@ -573,8 +573,7 @@ button:disabled:hover {
 
 /* ---------- Icon controls ---------- */
 
-.queue-toggle,
-.applied-toggle {
+.queue-toggle {
   width: auto;
   min-width: 44px;
   min-height: 44px;
@@ -586,8 +585,7 @@ button:disabled:hover {
   flex-shrink: 0;
 }
 
-.queue-toggle:hover,
-.applied-toggle:hover {
+.queue-toggle:hover {
   background: #e8e8ed;
   color: var(--ink);
 }
@@ -600,20 +598,6 @@ button:disabled:hover {
 .queue-toggle.queued:hover {
   background: #0077ed;
   color: #fff;
-}
-
-.applied-toggle.is-applied {
-  background: #1d7a3e;
-  color: #fff;
-  opacity: 1;
-}
-
-.applied-toggle:disabled {
-  cursor: default;
-}
-
-.applied-toggle:disabled:hover {
-  background: #1d7a3e;
 }
 
 /* ---------- Queue ---------- */

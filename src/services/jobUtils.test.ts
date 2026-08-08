@@ -197,6 +197,32 @@ describe('isApplied', () => {
   it('does not match different jobs', () => {
     expect(isApplied([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' })).toBe(false);
   });
+
+  // Records written before location existed carry no location, and the automation
+  // logs the final ATS url (workday/greenhouse/...), never the board's redirect url.
+  // Both match paths miss, so these applications were invisible to the badge.
+  it('recognises a legacy applied record that predates the location field', () => {
+    const legacy: Job = {
+      title: 'Software Development Engineer',
+      company: 'Luma Financial Technologies',
+      url: 'https://corespecialty.wd1.myworkdayjobs.com/en/job/1',
+      source: 'Adzuna',
+    };
+    const fresh: Job = {
+      title: 'Software Development Engineer',
+      company: 'Luma Financial Technologies',
+      url: 'https://www.adzuna.com/land/ad/5823718996',
+      source: 'Adzuna',
+      location: 'Cincinnati, Hamilton County',
+    };
+    expect(isApplied([legacy], fresh)).toBe(true);
+  });
+
+  it('still separates cities when both records know their location', () => {
+    const seattle = { ...job('Software Engineer', 'Amazon', 'Adzuna', 'Seattle, WA'), url: 'https://a.test/1' };
+    const arlington = { ...job('Software Engineer', 'Amazon', 'Adzuna', 'Arlington, VA'), url: 'https://a.test/2' };
+    expect(isApplied([seattle], arlington)).toBe(false);
+  });
 });
 
 describe('addApplied', () => {
