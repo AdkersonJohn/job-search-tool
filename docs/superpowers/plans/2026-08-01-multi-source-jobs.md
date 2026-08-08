@@ -13,6 +13,7 @@
 - Spec: `docs/superpowers/specs/2026-08-01-multi-source-jobs-design.md`
 - No new npm packages.
 - No API keys in repo, bundle, or env vars — JSearch key comes from `localStorage` key `jsearch_api_key` only.
+  > Superseded 2026-08-08: this constraint was violated at the time by a hardcoded Adzuna key (the design doc had scoped hiding it as out-of-scope). Adzuna credentials now come from `localStorage` too — `adzuna_app_id` / `adzuna_app_key`. The constraint as written now holds for every source.
 - Existing Adzuna behavior (URL-encoding, `company?.display_name ?? 'Unknown'` guard) must be preserved.
 - Work on branch `feature/multi-source-jobs`. Commit per task with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 - Match existing code style: arrow-function components, template-literal URLs, existing CSS class naming (kebab-case).
@@ -161,9 +162,9 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 import axios from 'axios';
 import { Job, dedupeJobs, mapJSearchJobs } from './jobUtils';
 
-const ADZUNA_APP_ID = "085d8a01";
-const ADZUNA_API_KEY = "8fbd3b9536418b89512a0b9c712a38c6";
-const ADZUNA_BASE_URL = `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${ADZUNA_APP_ID}&app_key=${ADZUNA_API_KEY}&results_per_page=50`;
+// Historical: these were hardcoded literals here. Credentials now come from
+// localStorage via getAdzunaCredentials(); see src/services/jobService.ts.
+const ADZUNA_BASE_URL = 'https://api.adzuna.com/v1/api/jobs/us/search/1';
 
 const JSEARCH_KEY_STORAGE = 'jsearch_api_key';
 

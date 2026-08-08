@@ -1,10 +1,21 @@
-import { dedupeJobs, mapJSearchJobs, toggleQueued, isApplied, Job } from './jobUtils';
+import {
+  addApplied,
+  dedupeJobs,
+  formatPosted,
+  formatSalary,
+  isApplied,
+  mapAdzunaJobs,
+  mapJSearchJobs,
+  toggleQueued,
+  Job,
+} from './jobUtils';
 
-const job = (title: string, company: string, source = 'Adzuna'): Job => ({
+const job = (title: string, company: string, source = 'Adzuna', location = ''): Job => ({
   title,
   company,
   url: 'https://example.com/x',
   source,
+  location,
 });
 
 describe('dedupeJobs', () => {
@@ -20,8 +31,58 @@ describe('dedupeJobs', () => {
     expect(result).toHaveLength(2);
   });
 
+  it('keeps the same role at the same company in different cities', () => {
+    const result = dedupeJobs([
+      job('Software Engineer II', 'Kroger', 'Adzuna', 'Cincinnati, OH'),
+      job('Software Engineer II', 'Kroger', 'Adzuna', 'Columbus, OH'),
+      job('Software Engineer II', 'Kroger', 'Adzuna', 'Nashville, TN'),
+    ]);
+    expect(result).toHaveLength(3);
+  });
+
   it('returns empty array for empty input', () => {
     expect(dedupeJobs([])).toEqual([]);
+  });
+});
+
+describe('mapAdzunaJobs', () => {
+  it('maps Adzuna fields including location, salary and posted date', () => {
+    const result = mapAdzunaJobs([
+      {
+        title: 'Backend Engineer',
+        company: { display_name: 'Acme' },
+        redirect_url: 'https://adzuna.com/1',
+        location: { display_name: 'Newport, KY' },
+        salary_min: 100000,
+        salary_max: 130000,
+        created: new Date().toISOString(),
+      },
+    ]);
+    expect(result).toEqual([
+      {
+        title: 'Backend Engineer',
+        company: 'Acme',
+        url: 'https://adzuna.com/1',
+        source: 'Adzuna',
+        location: 'Newport, KY',
+        salary: '$100,000 – $130,000',
+        posted: 'Today',
+      },
+    ]);
+  });
+
+  it('drops entries with no redirect_url and fills company fallback', () => {
+    const result = mapAdzunaJobs([
+      { title: 'Ghost Job', company: { display_name: 'Acme' } },
+      { title: 'Real Job', redirect_url: 'https://adzuna.com/2' },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ title: 'Real Job', company: 'Unknown', url: 'https://adzuna.com/2' });
+  });
+
+  it('returns empty array for undefined/null input', () => {
+    expect(mapAdzunaJobs(undefined)).toEqual([]);
+    expect(mapAdzunaJobs(null)).toEqual([]);
   });
 });
 
@@ -33,11 +94,29 @@ describe('mapJSearchJobs', () => {
         employer_name: 'Initech',
         job_apply_link: 'https://linkedin.com/jobs/1',
         job_publisher: 'LinkedIn',
+        job_city: 'Cincinnati',
+        job_state: 'OH',
+        job_country: 'US',
       },
     ]);
     expect(result).toEqual([
-      { title: 'React Developer', company: 'Initech', url: 'https://linkedin.com/jobs/1', source: 'LinkedIn' },
+      {
+        title: 'React Developer',
+        company: 'Initech',
+        url: 'https://linkedin.com/jobs/1',
+        source: 'LinkedIn',
+        location: 'Cincinnati, OH, US',
+        salary: '',
+        posted: '',
+      },
     ]);
+  });
+
+  it('labels remote roles as Remote', () => {
+    const result = mapJSearchJobs([
+      { job_apply_link: 'https://x.com/1', job_is_remote: true, job_city: 'Austin' },
+    ]);
+    expect(result[0].location).toBe('Remote');
   });
 
   it('fills fallbacks for missing fields and drops entries without an apply link', () => {
@@ -45,12 +124,48 @@ describe('mapJSearchJobs', () => {
       { job_apply_link: 'https://indeed.com/jobs/2' },
       { job_title: 'No Link Job', employer_name: 'Acme' },
     ]);
-    expect(result).toEqual([{ title: 'Untitled', company: 'Unknown', url: 'https://indeed.com/jobs/2', source: 'Web' }]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ title: 'Untitled', company: 'Unknown', source: 'Web' });
   });
 
   it('returns empty array for undefined/null input', () => {
     expect(mapJSearchJobs(undefined)).toEqual([]);
     expect(mapJSearchJobs(null)).toEqual([]);
+  });
+});
+
+describe('formatSalary', () => {
+  it('formats a range', () => {
+    expect(formatSalary(90000, 120000)).toBe('$90,000 – $120,000');
+  });
+
+  it('collapses an identical min and max to a single figure', () => {
+    expect(formatSalary(100000, 100000)).toBe('$100,000');
+  });
+
+  it('handles a single bound', () => {
+    expect(formatSalary(null, 85000)).toBe('$85,000');
+    expect(formatSalary(85000, null)).toBe('$85,000');
+  });
+
+  it('returns empty string when there is no salary', () => {
+    expect(formatSalary(null, null)).toBe('');
+    expect(formatSalary(undefined, undefined)).toBe('');
+  });
+});
+
+describe('formatPosted', () => {
+  it('describes recent dates relatively', () => {
+    const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
+    expect(formatPosted(daysAgo(0))).toBe('Today');
+    expect(formatPosted(daysAgo(1))).toBe('Yesterday');
+    expect(formatPosted(daysAgo(5))).toBe('5d ago');
+  });
+
+  it('returns empty string for missing or unparseable input', () => {
+    expect(formatPosted(undefined)).toBe('');
+    expect(formatPosted('')).toBe('');
+    expect(formatPosted('not a date')).toBe('');
   });
 });
 
@@ -60,13 +175,37 @@ describe('isApplied', () => {
     expect(isApplied(applied, { ...job('Different', 'Other'), url: 'https://example.com/x' })).toBe(true);
   });
 
-  it('matches by title|company ignoring case and url differences', () => {
+  it('matches by title|company|location ignoring case and url differences', () => {
     const applied = [{ ...job('Data Engineer III', 'BC Forward'), url: 'https://monster.com/1' }];
     expect(isApplied(applied, { ...job('  data engineer iii ', 'bc forward', 'LinkedIn'), url: 'https://linkedin.com/2' })).toBe(true);
   });
 
+  it('does not match the same role at the same company in another city', () => {
+    const applied = [job('Software Engineer', 'Amazon', 'Adzuna', 'Seattle, WA')];
+    const other = { ...job('Software Engineer', 'Amazon', 'Adzuna', 'Arlington, VA'), url: 'https://amazon.com/2' };
+    expect(isApplied(applied, other)).toBe(false);
+  });
+
+  it('does not treat two url-less jobs as the same job', () => {
+    const applied = [{ ...job('Engineer', 'Acme'), url: '' }];
+    const other = { ...job('Designer', 'Globex'), url: '' };
+    expect(isApplied(applied, other)).toBe(false);
+  });
+
   it('does not match different jobs', () => {
     expect(isApplied([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' })).toBe(false);
+  });
+});
+
+describe('addApplied', () => {
+  it('appends a job that is not already applied to', () => {
+    const result = addApplied([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' });
+    expect(result).toHaveLength(2);
+  });
+
+  it('is idempotent for a job already applied to', () => {
+    const existing = job('Engineer', 'Acme');
+    expect(addApplied([existing], { ...existing })).toHaveLength(1);
   });
 });
 
