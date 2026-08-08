@@ -43,3 +43,6 @@ applied-log.json
 # Session scratch
 .superpowers/
 .playwright-mcp/
+
+# Browser-automation form snapshots — contain personal data, never commit
+/*.yml
