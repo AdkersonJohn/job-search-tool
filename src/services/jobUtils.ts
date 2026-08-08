@@ -60,22 +60,47 @@ export const dedupeJobs = (jobs: Job[]): Job[] => {
 };
 
 /**
- * Location is compared only when BOTH sides know it. Applications recorded before
- * the location field existed have none, and the automation logs the final ATS url
- * rather than the board's redirect url — so a strict key match would make every
- * previous application invisible to the badge.
+ * Host + path, lowercased, with the query string dropped. Adzuna stamps the caller's
+ * app_id into `utm_source`, so raw url equality breaks the moment the key is rotated
+ * even though it is the same posting. Returns '' for anything unparseable — some
+ * older records hold a note rather than a url, and those must never match.
+ */
+export const canonicalUrl = (url: string | undefined): string => {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    // Adzuna routes the same ad as both /details/<id> and /land/ad/<id> — the id is
+    // the ad, the path is just where you land. Collapse both onto the id, or the same
+    // posting reads as two different jobs depending on when it was recorded.
+    const adzunaId = /^(?:www\.)?adzuna\.com$/i.test(parsed.host)
+      ? /^\/(?:details|land\/ad)\/(\d+)/.exec(parsed.pathname)
+      : null;
+    if (adzunaId) return `adzuna:${adzunaId[1]}`;
+    return `${parsed.host}${parsed.pathname}`.toLowerCase().replace(/\/+$/, '');
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * Deliberately strict: a false "Already applied" badge silently hides a job the user
+ * could have applied to, which is worse than failing to recognise an old application
+ * they can still spot themselves. So a match needs either the same canonical url, or
+ * all three of title, company and location present and equal on BOTH sides.
  *
- * ponytail: a legacy record therefore matches that title+company in any city. It
- * cannot do better without location data; new records carry it and stay exact.
+ * A record with no location therefore matches on url alone. Records written before
+ * location existed can only be recognised that way, which is the accepted cost of
+ * never badging the wrong posting.
  */
 const isSameJob = (a: Job, b: Job): boolean => {
+  const sameUrl = canonicalUrl(a.url) !== '' && canonicalUrl(a.url) === canonicalUrl(b.url);
+  if (sameUrl) return true;
   if (norm(a.title) !== norm(b.title) || norm(a.company) !== norm(b.company)) return false;
-  const bothKnowLocation = norm(a.location) !== '' && norm(b.location) !== '';
-  return bothKnowLocation ? norm(a.location) === norm(b.location) : true;
+  return norm(a.location) !== '' && norm(a.location) === norm(b.location);
 };
 
 export const isApplied = (applied: Job[], job: Job): boolean =>
-  applied.some((a) => (!!a.url && a.url === job.url) || isSameJob(a, job));
+  applied.some((a) => isSameJob(a, job));
 
 export const toggleQueued = (queue: Job[], job: Job): Job[] =>
   queue.some((q) => q.url === job.url) ? queue.filter((q) => q.url !== job.url) : [...queue, job];
