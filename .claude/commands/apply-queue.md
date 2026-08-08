@@ -55,13 +55,23 @@ Verify `resumePath` exists before starting.
 ## 4. Bookkeeping
 
 - Append every outcome to `applied-log.json` (repo root, gitignored):
-  `{ "url", "title", "company", "source", "status": "applied" | "skipped", "reason?", "timestamp" }`
+  `{ "url", "appliedUrl", "title", "company", "location", "source", "status": "applied" | "skipped", "reason?", "timestamp" }`
+  - `url` is the **posting url from the queue entry**, unmodified. It is the identity
+    the UI matches on — never overwrite it with the ATS url you ended up on.
+  - `appliedUrl` is where the application was actually submitted (Workday, Greenhouse,
+    …). Record-keeping only; the UI ignores it.
 - Remove successfully applied (and permanently-skipped) jobs from the site queue:
   write the filtered array back with `localStorage.setItem('apply_queue', ...)` on
   the site's tab.
-- Append each applied job (the Job object: title/company/url/source) to the site's
-  `applied_jobs` localStorage list on the same tab — the UI uses it to badge search
-  results as "Already applied" (matched by url or title|company).
+- Append each applied job to the site's `applied_jobs` localStorage list on the same
+  tab by **copying the queue entry verbatim** — do not rebuild the object or drop
+  fields. `location` in particular must survive, or the record cannot be matched
+  precisely later.
+- How the UI matches (`isSameJob` in `src/services/jobUtils.ts`): same canonical url
+  (host + path, query stripped), **or** title + company + location all present and
+  equal. A record missing `location` can only ever be matched by url. Matching is
+  deliberately strict — a wrong "Already applied" badge hides a job the user could
+  have applied to, and there is no way to clear one from the UI.
 
 ## 5. Wrap up
 

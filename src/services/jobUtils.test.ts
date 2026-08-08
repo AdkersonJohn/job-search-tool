@@ -5,6 +5,7 @@ import {
   totalFailureMessage,
   formatPosted,
   formatSalary,
+  canonicalUrl,
   isApplied,
   mapAdzunaJobs,
   mapJSearchJobs,
@@ -178,8 +179,9 @@ describe('isApplied', () => {
   });
 
   it('matches by title|company|location ignoring case and url differences', () => {
-    const applied = [{ ...job('Data Engineer III', 'BC Forward'), url: 'https://monster.com/1' }];
-    expect(isApplied(applied, { ...job('  data engineer iii ', 'bc forward', 'LinkedIn'), url: 'https://linkedin.com/2' })).toBe(true);
+    const applied = [{ ...job('Data Engineer III', 'BC Forward', 'Adzuna', 'Cincinnati, OH'), url: 'https://monster.com/1' }];
+    const other = { ...job('  data engineer iii ', 'bc forward', 'LinkedIn', '  CINCINNATI, oh '), url: 'https://linkedin.com/2' };
+    expect(isApplied(applied, other)).toBe(true);
   });
 
   it('does not match the same role at the same company in another city', () => {
@@ -198,30 +200,89 @@ describe('isApplied', () => {
     expect(isApplied([job('Engineer', 'Acme')], { ...job('Designer', 'Globex'), url: 'https://example.com/y' })).toBe(false);
   });
 
-  // Records written before location existed carry no location, and the automation
-  // logs the final ATS url (workday/greenhouse/...), never the board's redirect url.
-  // Both match paths miss, so these applications were invisible to the badge.
-  it('recognises a legacy applied record that predates the location field', () => {
-    const legacy: Job = {
+  // Adzuna stamps the caller's app_id into utm_source, so the same posting produces a
+  // different url string after a key rotation.
+  it('matches the same posting across a key rotation and tracking params', () => {
+    const applied: Job = {
       title: 'Software Development Engineer',
       company: 'Luma Financial Technologies',
-      url: 'https://corespecialty.wd1.myworkdayjobs.com/en/job/1',
+      url: 'https://www.adzuna.com/details/5823718996?utm_medium=api&utm_source=085d8a01',
       source: 'Adzuna',
     };
     const fresh: Job = {
-      title: 'Software Development Engineer',
-      company: 'Luma Financial Technologies',
-      url: 'https://www.adzuna.com/land/ad/5823718996',
-      source: 'Adzuna',
+      ...applied,
+      url: 'https://www.adzuna.com/details/5823718996?utm_medium=api&utm_source=NEWKEY99&v=abc',
       location: 'Cincinnati, Hamilton County',
     };
-    expect(isApplied([legacy], fresh)).toBe(true);
+    expect(isApplied([applied], fresh)).toBe(true);
   });
 
   it('still separates cities when both records know their location', () => {
     const seattle = { ...job('Software Engineer', 'Amazon', 'Adzuna', 'Seattle, WA'), url: 'https://a.test/1' };
     const arlington = { ...job('Software Engineer', 'Amazon', 'Adzuna', 'Arlington, VA'), url: 'https://a.test/2' };
     expect(isApplied([seattle], arlington)).toBe(false);
+  });
+
+  // Tightened deliberately: a location-less record used to match that title+company in
+  // ANY city, which silently hid postings that were never applied to.
+  it('refuses to badge a different city when the stored record has no location', () => {
+    const legacy: Job = {
+      title: 'Software Engineer',
+      company: 'Amazon',
+      url: 'https://amazon.jobs/en/jobs/111',
+      source: 'Adzuna',
+    };
+    const fresh: Job = {
+      title: 'Software Engineer',
+      company: 'Amazon',
+      url: 'https://www.adzuna.com/details/999',
+      source: 'Adzuna',
+      location: 'Arlington, VA',
+    };
+    expect(isApplied([legacy], fresh)).toBe(false);
+  });
+
+  it('does not match when only one side knows its location', () => {
+    const stored = { ...job('Engineer', 'Acme', 'Adzuna', 'Cincinnati, OH'), url: 'https://x.test/1' };
+    const fresh = { ...job('Engineer', 'Acme', 'Adzuna', ''), url: 'https://x.test/2' };
+    expect(isApplied([stored], fresh)).toBe(false);
+  });
+
+  // Two older records hold a free-text note where a url should be.
+  it('never matches on an unparseable stored url', () => {
+    const noteRecord: Job = { title: 'X', company: 'Y', url: 'adzuna ids 5821918865, 5822940071', source: 'Adzuna' };
+    const other: Job = { title: 'Z', company: 'W', url: 'adzuna ids 5825208652', source: 'Adzuna' };
+    expect(isApplied([noteRecord], other)).toBe(false);
+  });
+});
+
+describe('canonicalUrl', () => {
+  it('drops the query string, fragment and trailing slash', () => {
+    expect(canonicalUrl('https://boards.greenhouse.io/acme/jobs/123?token=abc#apply')).toBe('boards.greenhouse.io/acme/jobs/123');
+    expect(canonicalUrl('https://Boards.Greenhouse.IO/acme/jobs/123/')).toBe('boards.greenhouse.io/acme/jobs/123');
+  });
+
+  it('returns empty string for missing or unparseable input', () => {
+    expect(canonicalUrl(undefined)).toBe('');
+    expect(canonicalUrl('')).toBe('');
+    expect(canonicalUrl('adzuna ids 5821918865, 5822940071')).toBe('');
+  });
+
+  it('keeps genuinely different postings apart', () => {
+    expect(canonicalUrl('https://www.adzuna.com/details/111')).not.toBe(canonicalUrl('https://www.adzuna.com/details/222'));
+    expect(canonicalUrl('https://www.adzuna.com/land/ad/111')).not.toBe(canonicalUrl('https://www.adzuna.com/land/ad/222'));
+  });
+
+  // Adzuna serves the same ad under both routes; older records use /details/.
+  it('collapses both Adzuna routes onto the ad id', () => {
+    const details = canonicalUrl('https://www.adzuna.com/details/5823718996?utm_source=OLD');
+    const land = canonicalUrl('https://www.adzuna.com/land/ad/5823718996?utm_source=NEW&v=1');
+    expect(details).toBe('adzuna:5823718996');
+    expect(land).toBe(details);
+  });
+
+  it('does not confuse another host that has a numeric path', () => {
+    expect(canonicalUrl('https://jobs.example.com/details/5823718996')).toBe('jobs.example.com/details/5823718996');
   });
 });
 

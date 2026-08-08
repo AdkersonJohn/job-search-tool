@@ -118,13 +118,25 @@ describe('applied tracking', () => {
     expect(await screen.findByText(/already applied/i)).toBeInTheDocument();
   });
 
-  it('badges a job applied to before the location field existed', async () => {
-    const { location, ...legacyRecord } = job({ url: 'https://workday.test/old-application' });
+  // A record with no location is recognised by url alone, surviving the tracking
+  // params Adzuna stamps the caller's app_id into.
+  it('badges a location-less record when the posting url matches', async () => {
+    const { location, ...legacyRecord } = job({ url: 'https://example.com/job/1?utm_source=OLDKEY' });
     localStorage.setItem('applied_jobs', JSON.stringify([legacyRecord]));
     render(<SearchPage />);
     await runSearch();
 
     expect(await screen.findByText(/already applied/i)).toBeInTheDocument();
+  });
+
+  it('does not badge a location-less record for a different posting', async () => {
+    const { location, ...legacyRecord } = job({ url: 'https://workday.test/some-other-application' });
+    localStorage.setItem('applied_jobs', JSON.stringify([legacyRecord]));
+    render(<SearchPage />);
+    await runSearch();
+
+    await screen.findByRole('link', { name: 'Senior Software Engineer' });
+    expect(screen.queryByText(/already applied/i)).not.toBeInTheDocument();
   });
 
   it('ignores a non-array value in localStorage instead of crashing', async () => {
