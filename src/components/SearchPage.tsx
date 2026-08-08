@@ -325,6 +325,9 @@ const SearchPage: React.FC = () => {
                         <ExternalLink size={14} className="job-external-icon" aria-hidden="true" />
                       </a>
                     </h3>
+                    {/* Applied status is derived, never asserted here — it is set when a
+                        job is applied to from the queue, or carried over from a previous
+                        application. Only queueing is a decision the user makes on a result. */}
                     <div className="job-actions">
                       <button
                         type="button"
@@ -334,16 +337,6 @@ const SearchPage: React.FC = () => {
                         onClick={() => handleToggleQueue(job)}
                       >
                         {isQueued(job) ? <Check size={16} /> : <Plus size={16} />}
-                      </button>
-                      <button
-                        type="button"
-                        className={`applied-toggle${applied ? ' is-applied' : ''}`}
-                        aria-label={applied ? `${job.title} is marked applied` : `Mark ${job.title} as applied`}
-                        aria-pressed={applied}
-                        disabled={applied}
-                        onClick={() => handleMarkApplied(job)}
-                      >
-                        <Check size={16} />
                       </button>
                     </div>
                   </div>

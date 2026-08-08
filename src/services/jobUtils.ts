@@ -59,8 +59,23 @@ export const dedupeJobs = (jobs: Job[]): Job[] => {
   });
 };
 
+/**
+ * Location is compared only when BOTH sides know it. Applications recorded before
+ * the location field existed have none, and the automation logs the final ATS url
+ * rather than the board's redirect url — so a strict key match would make every
+ * previous application invisible to the badge.
+ *
+ * ponytail: a legacy record therefore matches that title+company in any city. It
+ * cannot do better without location data; new records carry it and stay exact.
+ */
+const isSameJob = (a: Job, b: Job): boolean => {
+  if (norm(a.title) !== norm(b.title) || norm(a.company) !== norm(b.company)) return false;
+  const bothKnowLocation = norm(a.location) !== '' && norm(b.location) !== '';
+  return bothKnowLocation ? norm(a.location) === norm(b.location) : true;
+};
+
 export const isApplied = (applied: Job[], job: Job): boolean =>
-  applied.some((a) => (!!a.url && a.url === job.url) || jobKey(a) === jobKey(job));
+  applied.some((a) => (!!a.url && a.url === job.url) || isSameJob(a, job));
 
 export const toggleQueued = (queue: Job[], job: Job): Job[] =>
   queue.some((q) => q.url === job.url) ? queue.filter((q) => q.url !== job.url) : [...queue, job];
